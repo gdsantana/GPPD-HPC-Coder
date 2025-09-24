@@ -1,6 +1,14 @@
 ### Install Dependencies
 ```
+# Criar um ambiente virtual
+python3 -m venv venv
+
+# Ativar o ambiente virtual
+source venv/bin/activate
+
+# Instalar as dependências
 pip install -r requirements.txt
+
 ```
 
 ### Finetuning DeepSeek-Coder-1.3B with LoRA
