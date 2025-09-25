@@ -139,14 +139,18 @@ def main():
 
     print("Iniciando treinamento...")
     trainer.train()
-    print("Treinamento concluído.")
+    print("Treinamento concluído com sucesso!")
 
-    # ===== Salvar modelo final (adapters) e tokenizer =====
+    # ===== Salvar modelo final completo (com adaptações LoRA mescladas) e tokenizer =====
     save_dir = args.save_dir
     os.makedirs(save_dir, exist_ok=True)
-    print(f"Salvando adapters e tokenizer em: {save_dir}")
-    trainer.save_model(save_dir)          # salva adapters PEFT
+    print(f"Salvando modelo completo fine-tuned e tokenizer em: {save_dir}")
+    
+    trainer.save_model(save_dir)          # salva o modelo completo com adaptações LoRA
     tokenizer.save_pretrained(save_dir)   # salva tokenizer
+    
+    print(f"Modelo e tokenizer salvos com sucesso em {save_dir}")
+    print("Processo de fine-tuning completado!")
 
     print("Tudo pronto!")
 
