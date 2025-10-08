@@ -29,6 +29,22 @@ python finetune_deepseek_optimized.py \
   --packing
 ```
 
+## Treinar com Logging em Arquivo
+
+```bash
+# Com timestamp automático
+python finetune_deepseek_optimized.py \
+  --model_name deepseek-ai/deepseek-coder-6.7b-base \
+  --output_dir ./results \
+  --save_dir ./model_trained \
+  --log_file ./logs/training_$(date +%Y%m%d_%H%M%S).log
+
+# Ou caminho fixo
+python finetune_deepseek_optimized.py \
+  --model_name deepseek-ai/deepseek-coder-6.7b-base \
+  --log_file ./training.log
+```
+
 ## Teste Rápido (100 amostras)
 
 ```bash
@@ -42,6 +58,16 @@ python finetune_deepseek_optimized.py \
 
 ```bash
 python monitor_gpu.py
+```
+
+## Ver Logs de Treinamento
+
+```bash
+# Ver log em tempo real (durante treinamento)
+tail -f ./logs/training_*.log
+
+# Ver log completo
+cat ./training.log
 ```
 
 ## Inferência
@@ -94,13 +120,17 @@ python finetune_deepseek_optimized.py \
 ```
 TCC/
 ├── finetune_deepseek_optimized.py  # Script principal de treinamento
+├── finetune_with_args.py           # Script configurável
+├── finetune_with_args_QLORA.py     # Script QLoRA
 ├── requirements.txt                 # Dependências Python
 ├── setup_environment.sh             # Setup automático
 ├── check_compatibility.py           # Verificação de sistema
 ├── monitor_gpu.py                   # Monitor de memória GPU
 ├── inference_example.py             # Script de inferência
 ├── README_DEEPSEEK_FINETUNE.md     # Documentação completa
-└── QUICKSTART.md                    # Este arquivo
+├── QUICKSTART.md                    # Este arquivo
+└── logs/                            # Logs de treinamento (criado automaticamente)
+    └── training_*.log
 ```
 
 ## Troubleshooting
@@ -120,6 +150,14 @@ TCC/
 pip install flash-attn --no-build-isolation
 ```
 Ou remover `--use_flash_attention`
+
+## Recursos de Logging
+
+Todos os scripts de treinamento suportam:
+- ✅ Output simultâneo no terminal e arquivo
+- ✅ Timestamps de início/fim
+- ✅ Criação automática de diretórios
+- ✅ Captura de debug, progresso e erros
 
 ## Ver Documentação Completa
 

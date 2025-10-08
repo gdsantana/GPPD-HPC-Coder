@@ -70,6 +70,17 @@ python finetune_deepseek_optimized.py \
   --gradient_accumulation_steps 16
 ```
 
+### Treinamento com Log em Arquivo
+```bash
+python finetune_deepseek_optimized.py \
+  --model_name deepseek-ai/deepseek-coder-6.7b-base \
+  --output_dir ./results_deepseek \
+  --save_dir ./trained_deepseek \
+  --log_file ./logs/training_$(date +%Y%m%d_%H%M%S).log
+```
+
+> **Nota:** O parâmetro `--log_file` salva todo o output do treinamento (prints de debug, progresso, erros) em um arquivo, além de exibir no terminal. O diretório do arquivo é criado automaticamente se não existir.
+
 ### Com Flash Attention 2
 ```bash
 python finetune_deepseek_optimized.py \
@@ -88,6 +99,37 @@ python finetune_deepseek_optimized.py \
   --save_steps 50
 ```
 
+## 📦 Datasets Opcionais
+
+Além do dataset padrão (HPC-Instruct), você pode adicionar datasets adicionais para melhorar a capacidade de geração de código:
+
+### Datasets Disponíveis
+
+1. **Evol-Instruct-Code-80k-v1** (80k exemplos) - Dataset de código evolutivo
+2. **Magicoder-OSS-Instruct-75K** (75k exemplos) - Dataset de instruções OSS
+
+### Uso
+
+```bash
+# Adicionar Evol-Instruct
+python finetune_deepseek_optimized.py \
+  --model_name deepseek-ai/deepseek-coder-6.7b-base \
+  --use_evol_instruct
+
+# Adicionar Magicoder
+python finetune_deepseek_optimized.py \
+  --model_name deepseek-ai/deepseek-coder-6.7b-base \
+  --use_magicoder
+
+# Usar todos os datasets
+python finetune_deepseek_optimized.py \
+  --model_name deepseek-ai/deepseek-coder-6.7b-base \
+  --use_evol_instruct \
+  --use_magicoder
+```
+
+📖 **Documentação completa**: Veja [DATASET_LOADER_GUIDE.md](DATASET_LOADER_GUIDE.md) (seção "Datasets Adicionais Opcionais")
+
 ## ⚙️ Parâmetros Principais
 
 | Parâmetro | Padrão | Descrição |
@@ -102,10 +144,13 @@ python finetune_deepseek_optimized.py \
 | `--epochs` | `3` | Número de épocas |
 | `--use_flash_attention` | `False` | Habilitar Flash Attention 2 |
 | `--packing` | `False` | Empacotar sequências |
+| `--use_evol_instruct` | `False` | Adicionar dataset Evol-Instruct |
+| `--use_magicoder` | `False` | Adicionar dataset Magicoder |
+| `--log_file` | `None` | Caminho para arquivo de log (opcional) |
 
-## 📊 Monitoramento de Memória
+## 📊 Monitoramento e Logging
 
-### Monitor em Tempo Real
+### Monitor de GPU em Tempo Real
 ```bash
 python monitor_gpu.py
 ```
@@ -119,6 +164,29 @@ python monitor_gpu.py --no-cpu
 ```bash
 python monitor_gpu.py --once
 ```
+
+### Logging de Treinamento
+
+Todos os scripts de treinamento suportam logging dual (terminal + arquivo):
+
+```bash
+# Salvar logs com timestamp automático
+python finetune_deepseek_optimized.py \
+  --model_name deepseek-ai/deepseek-coder-6.7b-base \
+  --log_file ./logs/training_$(date +%Y%m%d_%H%M%S).log
+
+# Ou especificar caminho fixo
+python finetune_with_args.py \
+  --model_name deepseek-ai/deepseek-coder-1.3b-base \
+  --log_file ./training.log
+```
+
+**Características do sistema de logging:**
+- ✅ Output simultâneo no terminal e arquivo
+- ✅ Timestamps de início e fim do treinamento
+- ✅ Criação automática de diretórios
+- ✅ Modo append (múltiplos treinamentos no mesmo arquivo)
+- ✅ Captura prints de debug, progresso e erros
 
 ## 🎛️ Ajuste Fino de Hiperparâmetros
 
@@ -254,6 +322,7 @@ Baseado em testes com RTX 4090:
 
 ## 📚 Estrutura de Arquivos
 
+### Modelo Treinado
 ```
 trained_deepseek/
 ├── adapter_config.json      # Configuração LoRA
@@ -266,6 +335,21 @@ trained_deepseek/
     ├── model-00002-of-00003.safetensors
     └── model-00003-of-00003.safetensors
 ```
+
+### Scripts e Módulos
+```
+TCC/
+├── finetune_deepseek_optimized.py  # Script principal otimizado
+├── finetune_with_args.py           # Script configurável
+├── dataset_loader.py               # 🆕 Módulo modular de datasets
+├── check_compatibility.py          # Verificador de sistema
+├── monitor_gpu.py                  # Monitor de GPU
+├── inference_example.py            # Script de inferência
+├── generate_prompts.py             # Gerador de prompts
+└── requirements.txt                # Dependências
+```
+
+**Novo:** O módulo `dataset_loader.py` fornece uma interface modular para carregar datasets. Veja [DATASET_LOADER_GUIDE.md](DATASET_LOADER_GUIDE.md) para detalhes.
 
 ## 🎓 Referências
 
@@ -280,3 +364,5 @@ trained_deepseek/
 - Checkpoints são salvos a cada 250 steps
 - Apenas os 2 últimos checkpoints são mantidos para economizar espaço
 - O modelo mesclado é opcional mas facilita deployment
+- **Novo:** Sistema de logging dual permite salvar todo o output em arquivo para análise posterior
+- Logs incluem timestamps, configurações, progresso e estatísticas de memória
