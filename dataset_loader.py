@@ -20,15 +20,13 @@ class DatasetConfig:
         config: Optional[str] = None,
         instruction_column: str = "problem statement",
         response_column: str = "solution",
-        filter_language: Optional[str] = None,
-        max_samples: Optional[int] = None
+        filter_language: Optional[str] = None
     ):
         self.name = name
         self.config = config
         self.instruction_column = instruction_column
         self.response_column = response_column
         self.filter_language = filter_language
-        self.max_samples = max_samples
 
 
 class DatasetLoader:
@@ -82,13 +80,6 @@ class DatasetLoader:
             )
         
         train_dataset = dataset["train"]
-        
-        # Aplicar limite de amostras se especificado
-        if dataset_config.max_samples:
-            train_dataset = train_dataset.select(
-                range(min(dataset_config.max_samples, len(train_dataset)))
-            )
-            logger.info(f"Limitado a {len(train_dataset)} amostras")
         
         # Formatar exemplos
         def format_example(example):
@@ -255,37 +246,23 @@ def load_dataset_from_args(args, tokenizer) -> Dataset:
                     instruction_col = columns[0].strip()
                     response_col = columns[1].strip()
             
-            # Calcular max_samples por dataset se especificado
-            max_samples = None
-            if hasattr(args, 'max_samples') and args.max_samples:
-                # Dividir amostras entre datasets principais e adicionais
-                total_datasets = len(args.dataset_names) + len(additional_datasets)
-                max_samples = args.max_samples // total_datasets
-            
             dataset_config = DatasetConfig(
                 name=name,
                 config=config,
                 instruction_column=instruction_col,
                 response_column=response_col,
-                filter_language=getattr(args, 'filter_language', None),
-                max_samples=max_samples
+                filter_language=getattr(args, 'filter_language', None)
             )
             dataset_configs.append(dataset_config)
         
         # Adicionar datasets opcionais se especificados
         for additional_config in additional_datasets:
-            max_samples = None
-            if hasattr(args, 'max_samples') and args.max_samples:
-                total_datasets = len(args.dataset_names) + len(additional_datasets)
-                max_samples = args.max_samples // total_datasets
-            
             dataset_config = DatasetConfig(
                 name=additional_config['name'],
                 config=None,
                 instruction_column=additional_config['instruction_column'],
                 response_column=additional_config['response_column'],
-                filter_language=None,  # Datasets adicionais não usam filtro de linguagem
-                max_samples=max_samples
+                filter_language=None  # Datasets adicionais não usam filtro de linguagem
             )
             dataset_configs.append(dataset_config)
         
@@ -308,35 +285,23 @@ def load_dataset_from_args(args, tokenizer) -> Dataset:
                     instruction_col = columns[0].strip()
                     response_col = columns[1].strip()
             
-            max_samples = None
-            if hasattr(args, 'max_samples') and args.max_samples:
-                total_datasets = 1 + len(additional_datasets)
-                max_samples = args.max_samples // total_datasets
-            
             dataset_config = DatasetConfig(
                 name=dataset_name,
                 config=getattr(args, 'dataset_config', None),
                 instruction_column=instruction_col,
                 response_column=response_col,
-                filter_language=getattr(args, 'filter_language', None),
-                max_samples=max_samples
+                filter_language=getattr(args, 'filter_language', None)
             )
             dataset_configs.append(dataset_config)
             
             # Adicionar datasets opcionais
             for additional_config in additional_datasets:
-                max_samples = None
-                if hasattr(args, 'max_samples') and args.max_samples:
-                    total_datasets = 1 + len(additional_datasets)
-                    max_samples = args.max_samples // total_datasets
-                
                 dataset_config = DatasetConfig(
                     name=additional_config['name'],
                     config=None,
                     instruction_column=additional_config['instruction_column'],
                     response_column=additional_config['response_column'],
-                    filter_language=None,
-                    max_samples=max_samples
+                    filter_language=None
                 )
                 dataset_configs.append(dataset_config)
             
@@ -357,8 +322,7 @@ def load_dataset_from_args(args, tokenizer) -> Dataset:
                 config=getattr(args, 'dataset_config', None),
                 instruction_column=instruction_col,
                 response_column=response_col,
-                filter_language=getattr(args, 'filter_language', None),
-                max_samples=getattr(args, 'max_samples', None)
+                filter_language=getattr(args, 'filter_language', None)
             )
             
             return loader.load_single_dataset(dataset_config)

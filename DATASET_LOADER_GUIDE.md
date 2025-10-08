@@ -8,7 +8,6 @@ O módulo `dataset_loader.py` fornece uma interface modular e reutilizável para
 - ✅ **Configurações personalizadas por dataset**
 - ✅ **Colunas flexíveis** (instrução e resposta)
 - ✅ **Filtragem por linguagem**
-- ✅ **Limitação de amostras**
 - ✅ **Templates de formatação customizáveis**
 - ✅ **Fallbacks automáticos** para diferentes formatos de dataset
 - ✅ **Combinação automática** de múltiplos datasets
@@ -27,8 +26,7 @@ class DatasetConfig:
         config: Optional[str] = None,       # Configuração específica do dataset
         instruction_column: str = "problem statement",  # Coluna de instrução
         response_column: str = "solution",  # Coluna de resposta
-        filter_language: Optional[str] = None,  # Filtro de linguagem
-        max_samples: Optional[int] = None   # Limite de amostras
+        filter_language: Optional[str] = None  # Filtro de linguagem
     ):
 ```
 
@@ -38,7 +36,6 @@ class DatasetConfig:
 - `instruction_column`: Nome da coluna que contém as instruções
 - `response_column`: Nome da coluna que contém as respostas
 - `filter_language`: Filtrar exemplos por linguagem (ex: `"Cuda"`)
-- `max_samples`: Número máximo de amostras a carregar
 
 ### 2. `DatasetLoader`
 
@@ -124,8 +121,7 @@ loader = DatasetLoader(tokenizer)
 config = DatasetConfig(
     name="tatsu-lab/alpaca",
     instruction_column="instruction",  # Colunas diferentes
-    response_column="output",
-    max_samples=1000  # Limitar a 1000 exemplos
+    response_column="output"
 )
 
 dataset = loader.load_single_dataset(config)
@@ -151,21 +147,18 @@ loader = DatasetLoader(tokenizer)
 configs = [
     DatasetConfig(
         name="hpcgroup/hpc-instruct",
-        filter_language="Cuda",
-        max_samples=5000
+        filter_language="Cuda"
     ),
     DatasetConfig(
         name="bigcode/the-stack",
         config="python",
         instruction_column="content",
-        response_column="content",
-        max_samples=3000
+        response_column="content"
     ),
     DatasetConfig(
         name="tatsu-lab/alpaca",
         instruction_column="instruction",
-        response_column="output",
-        max_samples=2000
+        response_column="output"
     )
 ]
 
@@ -186,7 +179,6 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset_name", type=str, default="hpcgroup/hpc-instruct")
     parser.add_argument("--filter_language", type=str, default="Cuda")
-    parser.add_argument("--max_samples", type=int, default=None)
     return parser.parse_args()
 
 def main():
@@ -213,14 +205,12 @@ O módulo reconhece automaticamente os seguintes argumentos quando usado com `lo
 - `--dataset_name`: Nome do dataset
 - `--dataset_config`: Configuração específica
 - `--filter_language`: Filtro de linguagem
-- `--max_samples`: Limite de amostras
 - `--dataset_columns`: Colunas no formato `"instrução,resposta"`
 
 ### Múltiplos Datasets:
 - `--dataset_names`: Lista de nomes (ex: `dataset1 dataset2 dataset3`)
 - `--dataset_configs`: Lista de configurações (mesma ordem)
 - `--filter_language`: Aplicado a todos os datasets
-- `--max_samples`: Dividido igualmente entre datasets
 - `--dataset_columns`: Aplicado a todos os datasets
 
 ## 📊 Fallbacks Automáticos
@@ -350,8 +340,7 @@ formatted_dataset = loader.load_single_dataset(config)
 ```python
 config = DatasetConfig(
     name="hpcgroup/hpc-instruct",
-    filter_language="Cuda",
-    max_samples=10000
+    filter_language="Cuda"
 )
 dataset = loader.load_single_dataset(config)
 ```
@@ -371,8 +360,7 @@ dataset = loader.load_multiple_datasets(configs)
 config = DatasetConfig(
     name="tatsu-lab/alpaca",
     instruction_column="instruction",
-    response_column="output",
-    max_samples=50000
+    response_column="output"
 )
 dataset = loader.load_single_dataset(config)
 ```
@@ -418,7 +406,7 @@ dataset = loader.load_single_dataset(config, format_template)
 1. **Tokenizer**: O tokenizer deve ser passado ao criar o `DatasetLoader`
 2. **EOS Token**: O token EOS é automaticamente adicionado ao final de cada exemplo
 3. **Processamento Paralelo**: Usa `num_proc=4` por padrão para processamento mais rápido
-4. **Memória**: Datasets grandes podem consumir muita memória - use `max_samples` para limitar
+4. **Memória**: Datasets grandes podem consumir muita memória do sistema
 5. **Compatibilidade**: Funciona com qualquer dataset do HuggingFace Hub que tenha split "train"
 
 ## 🐛 Troubleshooting
@@ -446,16 +434,16 @@ dataset = loader.load_single_dataset(config, format_template)
 
 ## 🎓 Exemplos Avançados
 
-### Balanceamento de Datasets
+### Combinação de Datasets
 ```python
-# Carregar 5000 exemplos de cada dataset
+# Carregar múltiplos datasets
 configs = [
-    DatasetConfig(name="dataset1", max_samples=5000),
-    DatasetConfig(name="dataset2", max_samples=5000),
-    DatasetConfig(name="dataset3", max_samples=5000)
+    DatasetConfig(name="dataset1"),
+    DatasetConfig(name="dataset2"),
+    DatasetConfig(name="dataset3")
 ]
-balanced_dataset = loader.load_multiple_datasets(configs)
-# Total: 15000 exemplos balanceados
+combined_dataset = loader.load_multiple_datasets(configs)
+print(f"Total: {len(combined_dataset)} exemplos")
 ```
 
 ### Pipeline Completo
@@ -550,27 +538,11 @@ python finetune_deepseek_optimized.py \
     --use_magicoder
 ```
 
-**5. Limitar o número total de amostras**
-```bash
-python finetune_deepseek_optimized.py \
-    --model_name deepseek-ai/deepseek-coder-6.7b-base \
-    --output_dir ./results \
-    --epochs 3 \
-    --use_evol_instruct \
-    --use_magicoder \
-    --max_samples 30000
-```
-**Nota**: Com `--max_samples 30000` e 3 datasets, cada dataset contribuirá com ~10k amostras.
-
 ### Comportamento de Combinação
 
 #### Distribuição de Amostras
 
-Quando múltiplos datasets são usados:
-
-1. **Sem limite (`--max_samples`)**: Todos os exemplos de cada dataset são usados
-2. **Com limite (`--max_samples N`)**: As amostras são divididas igualmente entre os datasets
-   - Exemplo: `--max_samples 30000` com 3 datasets = 10k amostras por dataset
+Quando múltiplos datasets são usados, todos os exemplos de cada dataset são carregados e combinados.
 
 #### Ordem de Processamento
 
@@ -613,12 +585,12 @@ Adicionar datasets não aumenta o uso de VRAM durante o treinamento, mas:
 
 #### Recomendações
 
-| Configuração | Datasets Recomendados | Max Samples |
-|--------------|----------------------|-------------|
-| **Teste Rápido** | Apenas HPC-Instruct | 1000-5000 |
-| **Treinamento Balanceado** | HPC + 1 adicional | 20000-50000 |
-| **Treinamento Completo** | Todos os 3 | Sem limite |
-| **RTX 4090 (24GB)** | Todos os 3 | Sem limite |
+| Configuração | Datasets Recomendados |
+|--------------|----------------------|
+| **Teste Rápido** | Apenas HPC-Instruct |
+| **Treinamento Balanceado** | HPC + 1 adicional |
+| **Treinamento Completo** | Todos os 3 |
+| **RTX 4090 (24GB)** | Todos os 3 |
 
 ### Logs de Datasets Opcionais
 
@@ -666,7 +638,7 @@ Distribuição:
 
 #### Erro: "Out of memory during loading"
 - **Causa**: RAM insuficiente para carregar todos os datasets
-- **Solução**: Use `--max_samples` para limitar o número de exemplos
+- **Solução**: Use menos datasets ou filtre por linguagem para reduzir o tamanho
 
 #### Carregamento muito lento
 - **Causa**: Datasets grandes sendo baixados pela primeira vez

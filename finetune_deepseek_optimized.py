@@ -169,12 +169,6 @@ def parse_args():
         help="Filtrar dataset por linguagem específica"
     )
     parser.add_argument(
-        "--max_samples",
-        type=int,
-        default=None,
-        help="Limite de amostras para teste rápido (None = sem limite)"
-    )
-    parser.add_argument(
         "--use_evol_instruct",
         action="store_true",
         help="Adicionar dataset Evol-Instruct-Code-80k-v1 ao treinamento"

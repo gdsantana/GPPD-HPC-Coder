@@ -90,11 +90,10 @@ python finetune_deepseek_optimized.py \
   --max_length 2048
 ```
 
-### Teste Rápido (100 amostras)
+### Teste Rápido (1 época)
 ```bash
 python finetune_deepseek_optimized.py \
   --model_name deepseek-ai/deepseek-coder-6.7b-base \
-  --max_samples 100 \
   --epochs 1 \
   --save_steps 50
 ```

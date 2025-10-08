@@ -178,9 +178,8 @@ def suggest_config():
         print(f"\n⚠️  {gpu_memory:.0f}GB may not be sufficient for DeepSeek-6.7B")
         print("   Consider using a smaller model like deepseek-coder-1.3b-base")
     
-    print("\n📊 Quick test command (100 samples):")
+    print("\n📊 Quick test command (1 época):")
     print("  python finetune_deepseek_optimized.py \\")
-    print("    --max_samples 100 \\")
     print("    --epochs 1 \\")
     print("    --save_steps 50")
 

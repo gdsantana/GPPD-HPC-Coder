@@ -42,30 +42,18 @@ echo "       --use_evol_instruct \\"
 echo "       --use_magicoder"
 echo ""
 
-# Exemplo 5: Todos os datasets com limite de amostras
-echo "5. Todos os datasets com limite de 30k amostras (10k por dataset)"
-echo "   python finetune_deepseek_optimized.py \\"
-echo "       --model_name deepseek-ai/deepseek-coder-6.7b-base \\"
-echo "       --output_dir ./results_limited \\"
-echo "       --epochs 3 \\"
-echo "       --use_evol_instruct \\"
-echo "       --use_magicoder \\"
-echo "       --max_samples 30000"
-echo ""
-
-# Exemplo 6: Teste rápido com poucos exemplos
-echo "6. Teste rápido com 3k amostras totais (1k por dataset)"
+# Exemplo 5: Teste rápido com 1 época
+echo "5. Teste rápido com 1 época"
 echo "   python finetune_deepseek_optimized.py \\"
 echo "       --model_name deepseek-ai/deepseek-coder-6.7b-base \\"
 echo "       --output_dir ./results_quick_test \\"
 echo "       --epochs 1 \\"
 echo "       --use_evol_instruct \\"
-echo "       --use_magicoder \\"
-echo "       --max_samples 3000"
+echo "       --use_magicoder"
 echo ""
 
-# Exemplo 7: Usando com finetune_with_args.py
-echo "7. Usando finetune_with_args.py com datasets opcionais"
+# Exemplo 6: Usando com finetune_with_args.py
+echo "6. Usando finetune_with_args.py com datasets opcionais"
 echo "   python finetune_with_args.py \\"
 echo "       --model_name deepseek-ai/deepseek-coder-1.3b-base \\"
 echo "       --output_dir ./results_1.3b \\"
@@ -74,8 +62,8 @@ echo "       --use_evol_instruct \\"
 echo "       --use_magicoder"
 echo ""
 
-# Exemplo 8: Usando com finetune_with_args_QLORA.py
-echo "8. Usando finetune_with_args_QLORA.py com datasets opcionais"
+# Exemplo 7: Usando com finetune_with_args_QLORA.py
+echo "7. Usando finetune_with_args_QLORA.py com datasets opcionais"
 echo "   python finetune_with_args_QLORA.py \\"
 echo "       --model_name deepseek-ai/deepseek-coder-1.3b-base \\"
 echo "       --output_dir ./results_qlora \\"
