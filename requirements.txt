@@ -14,3 +14,7 @@ psutil>=5.9.0
 wheel>=0.40.0
 
 flash-attn>=2.3.0
+
+# Dependências para AxoNN (treinamento distribuído)
+axonn>=0.1.0
+mpi4py>=3.1.0
