@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 import argparse
 import os
+import sys
 import torch
+from datetime import datetime
 from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments
-from datasets import load_dataset
 from peft import LoraConfig
 from trl import SFTTrainer
+from dataset_loader import DatasetConfig, DatasetLoader, load_dataset_from_args
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -53,11 +55,92 @@ def parse_args():
         default=4,
         help="Passos de acumulação de gradiente"
     )
+    parser.add_argument(
+        "--dataset_name",
+        type=str,
+        default="hpcgroup/hpc-instruct",
+        help="Nome do dataset no HuggingFace"
+    )
+    parser.add_argument(
+        "--filter_language",
+        type=str,
+        default="Cuda",
+        help="Filtrar dataset por linguagem específica"
+    )
+    parser.add_argument(
+        "--use_evol_instruct",
+        action="store_true",
+        help="Adicionar dataset Evol-Instruct-Code-80k-v1 ao treinamento"
+    )
+    parser.add_argument(
+        "--use_magicoder",
+        action="store_true",
+        help="Adicionar dataset Magicoder-OSS-Instruct-75K ao treinamento"
+    )
+    parser.add_argument(
+        "--log_file",
+        type=str,
+        default=None,
+        help="Caminho para arquivo de log. Se não especificado, usa apenas terminal"
+    )
     return parser.parse_args()
+
+class DualLogger:
+    """Logger que escreve simultaneamente no terminal e em arquivo."""
+    def __init__(self, log_file=None):
+        self.terminal = sys.stdout
+        self.log_file = None
+        
+        if log_file:
+            # Criar diretório se não existir
+            log_dir = os.path.dirname(log_file)
+            if log_dir and not os.path.exists(log_dir):
+                os.makedirs(log_dir, exist_ok=True)
+            
+            # Abrir arquivo em modo append
+            self.log_file = open(log_file, 'a', encoding='utf-8')
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.log_file.write(f"\n{'='*80}\n")
+            self.log_file.write(f"Início do treinamento: {timestamp}\n")
+            self.log_file.write(f"{'='*80}\n\n")
+            self.log_file.flush()
+    
+    def write(self, message):
+        self.terminal.write(message)
+        if self.log_file:
+            self.log_file.write(message)
+            self.log_file.flush()
+    
+    def flush(self):
+        self.terminal.flush()
+        if self.log_file:
+            self.log_file.flush()
+    
+    def close(self):
+        if self.log_file:
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.log_file.write(f"\n{'='*80}\n")
+            self.log_file.write(f"Fim do treinamento: {timestamp}\n")
+            self.log_file.write(f"{'='*80}\n\n")
+            self.log_file.close()
+
+def format_param_count(num_params):
+    """Formata o número de parâmetros em formato legível (ex: 1.3B, 6.7B)."""
+    if num_params >= 1e9:
+        return f"{num_params / 1e9:.1f}B"
+    elif num_params >= 1e6:
+        return f"{num_params / 1e6:.1f}M"
+    else:
+        return f"{num_params / 1e3:.1f}K"
 
 def main():
     args = parse_args()
     model_name = args.model_name
+    
+    # Configurar dual logging
+    logger = DualLogger(args.log_file)
+    sys.stdout = logger
+    sys.stderr = logger
 
     print(f"DEBUG: Iniciando fine-tuning com modelo: {model_name}")
     print(f"DEBUG: Parametros - epochs: {args.epochs}, batch_size: {args.per_device_train_batch_size}")
@@ -77,44 +160,43 @@ def main():
         load_in_8bit=True  # requer bitsandbytes
     )
     print("Modelo e tokenizer carregados com sucesso.")
-    print(f"DEBUG: Modelo carregado com {model.num_parameters()} parametros")
+    
+    # Obter contagem de parâmetros e criar diretório de salvamento
+    num_params = model.num_parameters()
+    param_str = format_param_count(num_params)
+    print(f"DEBUG: Modelo carregado com {num_params:,} parametros ({param_str})")
 
     # ===== Dataset =====
-    print("Carregando dataset hpcgroup/hpc-instruct e filtrando linguagem = 'Cuda'...")
-    dataset = load_dataset("hpcgroup/hpc-instruct")
-    print(f"DEBUG: Dataset original carregado com {len(dataset['train'])} exemplos de treino")
+    print("Carregando e preparando dataset...")
     
-    cuda_dataset = dataset.filter(lambda example: example.get("language") == "Cuda")
-    print(f"DEBUG: Filtrado para linguagem CUDA")
-
-    # Usar TODO o dataset de treinamento (subconjunto CUDA completo)
-    train_dataset = cuda_dataset["train"]
-    print(f"DEBUG: Dataset CUDA final tem {len(train_dataset)} exemplos")
-
-    # Formatação -> campo 'text' para o treinador
-    def format_example(example):
-        # Mantido conforme o script original: 'problem statement' e 'solution'
-        # Ajuste aqui se as chaves do dataset forem diferentes no seu ambiente.
-        return {
-            "text": f"Instruction: {example['problem statement']}\nResponse: {example['solution']}"
-        }
-
-    print("Formatando exemplos...")
-    formatted_train = train_dataset.map(format_example, remove_columns=train_dataset.column_names)
-    print(f"DEBUG: Exemplos formatados com sucesso")
-
-    # Tokenização
-    def tokenize_function(examples):
-        return tokenizer(
-            examples["text"],
-            padding="max_length",
-            truncation=True,
-            max_length=args.max_length
+    # Verificar se há datasets adicionais
+    has_additional = (hasattr(args, 'use_evol_instruct') and args.use_evol_instruct) or \
+                     (hasattr(args, 'use_magicoder') and args.use_magicoder)
+    
+    if has_additional:
+        # Usar função integrada que suporta múltiplos datasets
+        # Nota: load_dataset_from_args usa o formato padrão "### Instruction:\n{instruction}\n\n### Response:\n{response}"
+        print("AVISO: Usando formato padrão devido a datasets adicionais")
+        tokenized_train = load_dataset_from_args(args, tokenizer)
+    else:
+        # Usar formato customizado apenas para dataset único
+        loader = DatasetLoader(tokenizer)
+        
+        dataset_config = DatasetConfig(
+            name=args.dataset_name,
+            instruction_column="problem statement",
+            response_column="solution",
+            filter_language=args.filter_language
         )
-
-    print("Tokenizando dataset...")
-    tokenized_train = formatted_train.map(tokenize_function, batched=True)
-    print(f"DEBUG: Dataset tokenizado com max_length={args.max_length}")
+        
+        # Formato customizado para este script (sem ###)
+        format_template = "Instruction: {instruction}\nResponse: {response}"
+        tokenized_train = loader.load_single_dataset(dataset_config, format_template)
+        
+        if tokenized_train is None:
+            raise ValueError("Falha ao carregar dataset")
+    
+    print(f"DEBUG: Dataset preparado com {len(tokenized_train)} exemplos")
 
     # ===== LoRA / QLoRA =====
     lora_config = LoraConfig(
@@ -162,17 +244,20 @@ def main():
     print("DEBUG: Processo de treinamento finalizado")
 
     # ===== Salvar modelo final completo (com adaptações LoRA mescladas) e tokenizer =====
-    save_dir = args.save_dir
+    # Criar diretório de salvamento baseado no número de parâmetros
+    save_dir = f"finetune_model-{param_str}"
     os.makedirs(save_dir, exist_ok=True)
     print(f"Salvando modelo completo fine-tuned e tokenizer em: {save_dir}")
     print("DEBUG: Iniciando processo de salvamento do modelo")
     
     # Salvar o modelo com adaptadores LoRA
-    print("DEBUG: Salvando modelo com adaptadores LoRA...")
-    trainer.save_model(save_dir)
+    lora_save_dir = os.path.join(save_dir, "lora_adapters")
+    os.makedirs(lora_save_dir, exist_ok=True)
+    print(f"DEBUG: Salvando modelo com adaptadores LoRA em {lora_save_dir}...")
+    trainer.save_model(lora_save_dir)
     print("DEBUG: Modelo com adaptadores LoRA salvo")
     
-    # Salvar tokenizer
+    # Salvar tokenizer no diretório principal
     print("DEBUG: Salvando tokenizer...")
     tokenizer.save_pretrained(save_dir)
     print("DEBUG: Tokenizer salvo")
@@ -193,10 +278,20 @@ def main():
         print(f"DEBUG: Erro ao mesclar modelo: {e}")
         print("DEBUG: Modelo com adaptadores LoRA foi salvo normalmente")
     
-    print(f"Modelo e tokenizer salvos com sucesso em {save_dir}")
+    print(f"\n{'='*80}")
+    print(f"Modelo e tokenizer salvos com sucesso em: {save_dir}")
+    print(f"  - Adaptadores LoRA: {lora_save_dir}")
+    print(f"  - Modelo mesclado: {merged_save_dir}")
+    print(f"  - Tokenizer: {save_dir}")
+    print(f"{'='*80}")
     print("Processo de fine-tuning completado!")
     print("DEBUG: Todos os arquivos foram salvos")
     print("DEBUG: Processo finalizado com sucesso")
+    
+    # Fechar logger
+    logger.close()
+    sys.stdout = logger.terminal
+    sys.stderr = logger.terminal
 
 if __name__ == "__main__":
     main()

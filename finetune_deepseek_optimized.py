@@ -1,22 +1,72 @@
 #!/usr/bin/env python3
 import argparse
 import os
+import sys
 import torch
 import gc
+from datetime import datetime
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
     TrainingArguments,
     BitsAndBytesConfig
 )
-from datasets import load_dataset
 from peft import LoraConfig, prepare_model_for_kbit_training, get_peft_model
 from trl import SFTTrainer, DataCollatorForCompletionOnlyLM
 import logging
+from dataset_loader import load_dataset_from_args
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+class DualLogger:
+    """Logger que escreve simultaneamente no terminal e em arquivo."""
+    def __init__(self, log_file=None):
+        self.terminal = sys.stdout
+        self.log_file = None
+        
+        if log_file:
+            # Criar diretório se não existir
+            log_dir = os.path.dirname(log_file)
+            if log_dir and not os.path.exists(log_dir):
+                os.makedirs(log_dir, exist_ok=True)
+            
+            # Abrir arquivo em modo append
+            self.log_file = open(log_file, 'a', encoding='utf-8')
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.log_file.write(f"\n{'='*80}\n")
+            self.log_file.write(f"Início do treinamento: {timestamp}\n")
+            self.log_file.write(f"{'='*80}\n\n")
+            self.log_file.flush()
+    
+    def write(self, message):
+        self.terminal.write(message)
+        if self.log_file:
+            self.log_file.write(message)
+            self.log_file.flush()
+    
+    def flush(self):
+        self.terminal.flush()
+        if self.log_file:
+            self.log_file.flush()
+    
+    def close(self):
+        if self.log_file:
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.log_file.write(f"\n{'='*80}\n")
+            self.log_file.write(f"Fim do treinamento: {timestamp}\n")
+            self.log_file.write(f"{'='*80}\n\n")
+            self.log_file.close()
+
+def format_param_count(num_params):
+    """Formata o número de parâmetros em formato legível (ex: 1.3B, 6.7B)."""
+    if num_params >= 1e9:
+        return f"{num_params / 1e9:.1f}B"
+    elif num_params >= 1e6:
+        return f"{num_params / 1e6:.1f}M"
+    else:
+        return f"{num_params / 1e3:.1f}K"
 
 def clear_memory():
     gc.collect()
@@ -119,10 +169,20 @@ def parse_args():
         help="Filtrar dataset por linguagem específica"
     )
     parser.add_argument(
-        "--max_samples",
-        type=int,
+        "--use_evol_instruct",
+        action="store_true",
+        help="Adicionar dataset Evol-Instruct-Code-80k-v1 ao treinamento"
+    )
+    parser.add_argument(
+        "--use_magicoder",
+        action="store_true",
+        help="Adicionar dataset Magicoder-OSS-Instruct-75K ao treinamento"
+    )
+    parser.add_argument(
+        "--log_file",
+        type=str,
         default=None,
-        help="Limite de amostras para teste rápido (None = sem limite)"
+        help="Caminho para arquivo de log. Se não especificado, usa apenas terminal"
     )
     return parser.parse_args()
 
@@ -173,10 +233,12 @@ def setup_model_and_tokenizer(args):
         gradient_checkpointing_kwargs={"use_reentrant": False}
     )
     
-    logger.info(f"Modelo carregado: {model.num_parameters():,} parâmetros totais")
+    num_params = model.num_parameters()
+    param_str = format_param_count(num_params)
+    logger.info(f"Modelo carregado: {num_params:,} parâmetros totais ({param_str})")
     print_memory_stats()
     
-    return model, tokenizer
+    return model, tokenizer, param_str
 
 
 def setup_lora(model, args):
@@ -213,37 +275,11 @@ def setup_lora(model, args):
 
 
 def load_and_prepare_dataset(args, tokenizer):
-    logger.info(f"Carregando dataset: {args.dataset_name}")
-    
-    dataset = load_dataset(args.dataset_name)
-    logger.info(f"Dataset original: {len(dataset['train'])} exemplos")
-    
-    if args.filter_language:
-        dataset = dataset.filter(lambda x: x.get("language") == args.filter_language)
-        logger.info(f"Após filtrar linguagem '{args.filter_language}': {len(dataset['train'])} exemplos")
-    
-    train_dataset = dataset["train"]
-    
-    if args.max_samples:
-        train_dataset = train_dataset.select(range(min(args.max_samples, len(train_dataset))))
-        logger.info(f"Limitado a {len(train_dataset)} amostras")
-    
-    def format_example(example):
-        instruction = example.get('problem statement', '')
-        response = example.get('solution', '')
-        
-        text = f"### Instruction:\n{instruction}\n\n### Response:\n{response}{tokenizer.eos_token}"
-        return {"text": text}
-    
-    logger.info("Formatando exemplos...")
-    formatted_dataset = train_dataset.map(
-        format_example,
-        remove_columns=train_dataset.column_names,
-        num_proc=4,
-        desc="Formatando"
-    )
-    
-    return formatted_dataset
+    """
+    Carrega e prepara dataset(s) para treinamento.
+    Usa o módulo dataset_loader para modularidade.
+    """
+    return load_dataset_from_args(args, tokenizer)
 
 
 def create_training_args(args):
@@ -291,6 +327,11 @@ def create_training_args(args):
 def main():
     args = parse_args()
     
+    # Configurar dual logging
+    dual_logger = DualLogger(args.log_file)
+    sys.stdout = dual_logger
+    sys.stderr = dual_logger
+    
     logger.info("="*80)
     logger.info("Fine-tuning deepseek-coder-6.7B otimizado para RTX 4090")
     logger.info("="*80)
@@ -302,7 +343,7 @@ def main():
     
     clear_memory()
     
-    model, tokenizer = setup_model_and_tokenizer(args)
+    model, tokenizer, param_str = setup_model_and_tokenizer(args)
     
     model = setup_lora(model, args)
     
@@ -339,20 +380,27 @@ def main():
         logger.error(f"Erro durante treinamento: {e}")
         raise
     
-    logger.info(f"Salvando modelo em: {args.save_dir}")
-    os.makedirs(args.save_dir, exist_ok=True)
+    # Criar diretório de salvamento baseado no número de parâmetros
+    save_dir = f"finetune_model-{param_str}"
+    logger.info(f"Salvando modelo em: {save_dir}")
+    os.makedirs(save_dir, exist_ok=True)
     
-    trainer.save_model(args.save_dir)
-    tokenizer.save_pretrained(args.save_dir)
+    # Salvar adaptadores LoRA
+    lora_save_dir = os.path.join(save_dir, "lora_adapters")
+    os.makedirs(lora_save_dir, exist_ok=True)
+    trainer.save_model(lora_save_dir)
     
-    logger.info("✓ Modelo e tokenizer salvos")
+    # Salvar tokenizer no diretório principal
+    tokenizer.save_pretrained(save_dir)
+    
+    logger.info("✓ Adaptadores LoRA e tokenizer salvos")
     
     logger.info("Tentando salvar modelo mesclado...")
     try:
         model.config.use_cache = True
         merged_model = model.merge_and_unload()
         
-        merged_save_dir = os.path.join(args.save_dir, "merged_model")
+        merged_save_dir = os.path.join(save_dir, "merged_model")
         os.makedirs(merged_save_dir, exist_ok=True)
         
         merged_model.save_pretrained(
@@ -369,10 +417,18 @@ def main():
     
     logger.info("="*80)
     logger.info("Fine-tuning completo!")
-    logger.info(f"Adaptadores LoRA: {args.save_dir}")
+    logger.info(f"Modelo salvo em: {save_dir}")
+    logger.info(f"  - Adaptadores LoRA: {lora_save_dir}")
+    logger.info(f"  - Modelo mesclado: {merged_save_dir}")
+    logger.info(f"  - Tokenizer: {save_dir}")
     logger.info("="*80)
     
     print_memory_stats()
+    
+    # Fechar logger
+    dual_logger.close()
+    sys.stdout = dual_logger.terminal
+    sys.stderr = dual_logger.terminal
 
 
 if __name__ == "__main__":
