@@ -244,8 +244,8 @@ def main():
     print("DEBUG: Processo de treinamento finalizado")
 
     # ===== Salvar modelo final completo (com adaptações LoRA mescladas) e tokenizer =====
-    # Criar diretório de salvamento baseado no número de parâmetros
-    save_dir = f"finetune_model-{param_str}"
+    # Usar o diretório especificado pelo usuário
+    save_dir = args.save_dir
     os.makedirs(save_dir, exist_ok=True)
     print(f"Salvando modelo completo fine-tuned e tokenizer em: {save_dir}")
     print("DEBUG: Iniciando processo de salvamento do modelo")
