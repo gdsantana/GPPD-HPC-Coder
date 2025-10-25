@@ -1,165 +1,134 @@
-# 🚀 Quick Start - DeepSeek-Coder-6.7B Fine-tuning
+# 🚀 Quick Start - DeepSeek-Coder Fine-tuning
 
-## Setup Rápido
+## Instalação de Dependências
 
 ```bash
-chmod +x setup_environment.sh
-./setup_environment.sh
+# Instalar dependências
+pip install -r requirements.txt
 ```
 
-## Verificar Compatibilidade
+## Comando Principal de Treinamento
+
+Use o script `finetune_with_args.py` com o seguinte comando:
 
 ```bash
-python check_compatibility.py
+python3 finetune_with_args.py \
+  --model_name deepseek-ai/deepseek-coder-1.3b-instruct \
+  --output_dir ./models/gppd-hpc-cuda-coder-instruct \
+  --save_dir ./checkpoints/gppd-hpc-cuda-coder-instruct \
+  --use_evol_instruct \
+  --use_magicoder \
+  --log_file ./logs/gppd-hpc-cuda-coder-instruct.log
 ```
 
-## Treinar (Configuração Recomendada)
+## Parâmetros do Script
 
+### Parâmetros Obrigatórios
+- `--model_name`: Nome/caminho do modelo base (ex.: deepseek-ai/deepseek-coder-1.3b-instruct)
+
+### Parâmetros Principais
+- `--output_dir`: Diretório para checkpoints durante o treino (padrão: ./results)
+- `--save_dir`: Diretório onde o modelo final será salvo (padrão: ./trained_model)
+- `--log_file`: Caminho para arquivo de log (opcional)
+
+### Datasets Adicionais
+- `--use_evol_instruct`: Adiciona dataset Evol-Instruct-Code-80k-v1
+- `--use_magicoder`: Adiciona dataset Magicoder-OSS-Instruct-75K
+
+### Parâmetros de Configuração (opcionais)
+- `--max_length`: Comprimento máximo de tokens (padrão: 512)
+- `--epochs`: Número de épocas (padrão: 3)
+- `--per_device_train_batch_size`: Batch size por dispositivo (padrão: 4)
+- `--gradient_accumulation_steps`: Passos de acumulação de gradiente (padrão: 4)
+- `--dataset_name`: Nome do dataset principal (padrão: hpcgroup/hpc-instruct)
+- `--filter_language`: Filtrar por linguagem (padrão: Cuda)
+
+## Exemplos de Uso
+
+### Treinamento Básico (apenas HPC-Instruct)
 ```bash
-python finetune_deepseek_optimized.py \
-  --model_name deepseek-ai/deepseek-coder-6.7b-base \
-  --output_dir ./results \
-  --save_dir ./model_trained \
-  --epochs 3 \
+python3 finetune_with_args.py \
+  --model_name deepseek-ai/deepseek-coder-1.3b-instruct \
+  --output_dir ./models/basic-cuda-coder \
+  --save_dir ./checkpoints/basic-cuda-coder
+```
+
+### Treinamento com Configurações Customizadas
+```bash
+python3 finetune_with_args.py \
+  --model_name deepseek-ai/deepseek-coder-1.3b-instruct \
+  --output_dir ./models/custom-coder \
+  --save_dir ./checkpoints/custom-coder \
+  --epochs 5 \
   --max_length 1024 \
-  --lora_r 64 \
-  --lora_alpha 128 \
-  --gradient_accumulation_steps 16 \
-  --use_flash_attention \
-  --packing
+  --per_device_train_batch_size 2 \
+  --gradient_accumulation_steps 8 \
+  --log_file ./logs/custom-training.log
 ```
 
-## Treinar com Logging em Arquivo
-
+### Treinamento Apenas com Evol-Instruct
 ```bash
-# Com timestamp automático
-python finetune_deepseek_optimized.py \
-  --model_name deepseek-ai/deepseek-coder-6.7b-base \
-  --output_dir ./results \
-  --save_dir ./model_trained \
-  --log_file ./logs/training_$(date +%Y%m%d_%H%M%S).log
-
-# Ou caminho fixo
-python finetune_deepseek_optimized.py \
-  --model_name deepseek-ai/deepseek-coder-6.7b-base \
-  --log_file ./training.log
+python3 finetune_with_args.py \
+  --model_name deepseek-ai/deepseek-coder-1.3b-instruct \
+  --output_dir ./models/evol-coder \
+  --save_dir ./checkpoints/evol-coder \
+  --use_evol_instruct
 ```
 
-## Teste Rápido (1 época)
+## Estrutura de Saída
 
+O modelo treinado será salvo com a seguinte estrutura:
+
+```
+finetune_model-{n_params}/
+├── lora_adapters/          # Adaptadores LoRA (PEFT)
+│   ├── adapter_config.json
+│   ├── adapter_model.bin
+│   └── ...
+├── merged_model/           # Modelo completo mesclado
+│   ├── config.json
+│   ├── pytorch_model.bin
+│   ├── tokenizer.json
+│   └── ...
+├── tokenizer.json
+├── tokenizer_config.json
+└── special_tokens_map.json
+```
+
+## Monitoramento
+
+### Ver Logs em Tempo Real
 ```bash
-python finetune_deepseek_optimized.py \
-  --model_name deepseek-ai/deepseek-coder-6.7b-base \
-  --epochs 1
+tail -f ./logs/gppd-hpc-cuda-coder-instruct.log
 ```
 
-## Monitorar GPU
-
+### Monitorar GPU (se disponível)
 ```bash
 python monitor_gpu.py
 ```
 
-## Ver Logs de Treinamento
-
-```bash
-# Ver log em tempo real (durante treinamento)
-tail -f ./logs/training_*.log
-
-# Ver log completo
-cat ./training.log
-```
-
-## Inferência
-
-### Com adaptadores LoRA
-```bash
-python inference_example.py \
-  --adapter_path ./model_trained \
-  --instruction "Write a CUDA kernel for vector addition"
-```
-
-### Modo interativo
-```bash
-python inference_example.py \
-  --adapter_path ./model_trained \
-  --interactive
-```
-
-### Com modelo mesclado
-```bash
-python inference_example.py \
-  --merged_model_path ./model_trained/merged_model \
-  --interactive
-```
-
-## Configurações Alternativas
-
-### Conservative (menos memória, ~18GB)
-```bash
-python finetune_deepseek_optimized.py \
-  --max_length 512 \
-  --lora_r 32 \
-  --lora_alpha 64 \
-  --gradient_accumulation_steps 8
-```
-
-### High Quality (mais memória, ~22GB)
-```bash
-python finetune_deepseek_optimized.py \
-  --max_length 2048 \
-  --lora_r 128 \
-  --lora_alpha 256 \
-  --gradient_accumulation_steps 32 \
-  --use_flash_attention \
-  --packing
-```
-
-## Estrutura de Arquivos Criados
-
-```
-TCC/
-├── finetune_deepseek_optimized.py  # Script principal de treinamento
-├── finetune_with_args.py           # Script configurável
-├── finetune_with_args_QLORA.py     # Script QLoRA
-├── requirements.txt                 # Dependências Python
-├── setup_environment.sh             # Setup automático
-├── check_compatibility.py           # Verificação de sistema
-├── monitor_gpu.py                   # Monitor de memória GPU
-├── inference_example.py             # Script de inferência
-├── README_DEEPSEEK_FINETUNE.md     # Documentação completa
-├── QUICKSTART.md                    # Este arquivo
-└── logs/                            # Logs de treinamento (criado automaticamente)
-    └── training_*.log
-```
-
 ## Troubleshooting
 
-### OOM Error
-1. Reduzir `--max_length 512`
-2. Reduzir `--lora_r 32`
-3. Aumentar `--gradient_accumulation_steps 32`
+### Erro de Memória (OOM)
+1. Reduzir `--max_length 256`
+2. Reduzir `--per_device_train_batch_size 1`
+3. Aumentar `--gradient_accumulation_steps 8`
 
-### Muito Lento
-1. Adicionar `--use_flash_attention`
-2. Adicionar `--packing`
-3. Aumentar `--per_device_train_batch_size` (se tiver memória)
+### Treinamento Muito Lento
+1. Aumentar `--per_device_train_batch_size` (se tiver memória)
+2. Reduzir `--gradient_accumulation_steps`
+3. Usar modelo menor (1.3B ao invés de 6.7B)
 
-### Flash Attention Error
+### Erro de Dependências
 ```bash
-pip install flash-attn --no-build-isolation
+pip install --upgrade transformers peft trl datasets bitsandbytes
 ```
-Ou remover `--use_flash_attention`
 
-## Recursos de Logging
+## Recursos do Script
 
-Todos os scripts de treinamento suportam:
-- ✅ Output simultâneo no terminal e arquivo
-- ✅ Timestamps de início/fim
-- ✅ Criação automática de diretórios
-- ✅ Captura de debug, progresso e erros
-
-## Ver Documentação Completa
-
-```bash
-cat README_DEEPSEEK_FINETUNE.md
-```
+- ✅ Suporte a múltiplos datasets (HPC-Instruct, Evol-Instruct, Magicoder)
+- ✅ Logging simultâneo no terminal e arquivo
+- ✅ Quantização 8-bit para economia de memória
+- ✅ LoRA (Low-Rank Adaptation) para fine-tuning eficiente
+- ✅ Salvamento automático de adaptadores e modelo mesclado
+- ✅ Timestamps e debug detalhado

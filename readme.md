@@ -1,59 +1,84 @@
 # 🚀 DeepSeek-Coder Fine-tuning Project
 
-Projeto completo de fine-tuning para modelos DeepSeek-Coder com otimizações avançadas para RTX 4090.
+Projeto de fine-tuning para modelos DeepSeek-Coder usando LoRA e múltiplos datasets de código.
 
 ## 📚 Documentação
 
-- **[README_DEEPSEEK_FINETUNE.md](README_DEEPSEEK_FINETUNE.md)** - Documentação completa do projeto
 - **[QUICKSTART.md](QUICKSTART.md)** - Guia de início rápido
-- **[DATASET_LOADER_GUIDE.md](DATASET_LOADER_GUIDE.md)** - 🆕 Guia do módulo de datasets
-- **[REFACTORING_NOTES.md](REFACTORING_NOTES.md)** - 🆕 Notas sobre refatoração
+- **[DATASET_LOADER_GUIDE.md](DATASET_LOADER_GUIDE.md)** - Guia do módulo de datasets
 
 ## ⚡ Quick Start
 
 ### 1. Instalar Dependências
 ```bash
-# Criar ambiente virtual
-python3 -m venv venv
-
-# Ativar ambiente virtual
-source venv/bin/activate  # Linux/Mac
-# ou
-venv\Scripts\activate     # Windows
-
 # Instalar dependências
 pip install -r requirements.txt
 ```
 
-### 2. Verificar Compatibilidade
+### 2. Treinar Modelo (Comando Principal)
 ```bash
-python check_compatibility.py
+python3 finetune_with_args.py \
+  --model_name deepseek-ai/deepseek-coder-1.3b-instruct \
+  --output_dir ./models/gppd-hpc-cuda-coder-instruct \
+  --save_dir ./checkpoints/gppd-hpc-cuda-coder-instruct \
+  --use_evol_instruct \
+  --use_magicoder \
+  --log_file ./logs/gppd-hpc-cuda-coder-instruct.log
 ```
 
-### 3. Treinar Modelo (Configuração Recomendada)
+## 🛠️ Script Principal
+
+**`finetune_with_args.py`** - Script configurável para fine-tuning com suporte a múltiplos datasets
+
+### Recursos
+- ✅ Suporte a múltiplos datasets (HPC-Instruct, Evol-Instruct, Magicoder)
+- ✅ LoRA (Low-Rank Adaptation) para fine-tuning eficiente
+- ✅ Quantização 8-bit para economia de memória
+- ✅ Logging detalhado com timestamps
+- ✅ Salvamento automático de adaptadores e modelo mesclado
+
+## 📖 Exemplos de Uso
+
+### Treinamento Básico (apenas HPC-Instruct)
 ```bash
-python finetune_deepseek_optimized.py \
-  --model_name deepseek-ai/deepseek-coder-6.7b-base \
-  --output_dir ./results \
-  --save_dir ./trained_model \
-  --epochs 3 \
+python3 finetune_with_args.py \
+  --model_name deepseek-ai/deepseek-coder-1.3b-instruct \
+  --output_dir ./models/basic-cuda-coder \
+  --save_dir ./checkpoints/basic-cuda-coder
+```
+
+### Treinamento com Configurações Customizadas
+```bash
+python3 finetune_with_args.py \
+  --model_name deepseek-ai/deepseek-coder-1.3b-instruct \
+  --output_dir ./models/custom-coder \
+  --save_dir ./checkpoints/custom-coder \
+  --epochs 5 \
   --max_length 1024 \
-  --lora_r 64 \
-  --gradient_accumulation_steps 16 \
-  --use_flash_attention \
-  --packing
+  --per_device_train_batch_size 2 \
+  --gradient_accumulation_steps 8 \
+  --log_file ./logs/custom-training.log
 ```
 
-### 4. Inferência
+### Monitorar GPU Durante Treinamento (se disponível)
 ```bash
-python inference_example.py \
-  --adapter_path ./trained_model \
-  --interactive
+python monitor_gpu.py
 ```
 
-## Estrutura de Diretórios
+## 🎯 Parâmetros Principais
 
-Cada modelo fine-tuned é salvo com a seguinte estrutura:
+| Parâmetro | Descrição | Padrão |
+|-----------|-----------|---------|
+| `--model_name` | Nome/caminho do modelo base | **obrigatório** |
+| `--output_dir` | Diretório para checkpoints | `./results` |
+| `--save_dir` | Diretório do modelo final | `./trained_model` |
+| `--use_evol_instruct` | Adicionar dataset Evol-Instruct | `False` |
+| `--use_magicoder` | Adicionar dataset Magicoder | `False` |
+| `--log_file` | Arquivo de log | `None` |
+| `--epochs` | Número de épocas | `3` |
+| `--max_length` | Comprimento máximo de tokens | `512` |
+
+## Estrutura de Saída
 
 ```
 finetune_model-{n_params}/
@@ -61,7 +86,7 @@ finetune_model-{n_params}/
 │   ├── adapter_config.json
 │   ├── adapter_model.bin
 │   └── ...
-├── merged_model/           # Modelo completo mesclado (opcional)
+├── merged_model/           # Modelo completo mesclado
 │   ├── config.json
 │   ├── pytorch_model.bin
 │   ├── tokenizer.json
@@ -71,66 +96,8 @@ finetune_model-{n_params}/
 └── special_tokens_map.json
 ```
 
-## 🛠️ Scripts Principais
-
-| Script | Descrição |
-|--------|-----------|
-| `finetune_deepseek_optimized.py` | Script principal com todas as otimizações |
-| `finetune_with_args.py` | Script configurável via argumentos |
-| `check_compatibility.py` | Verificador de compatibilidade do sistema |
-| `monitor_gpu.py` | Monitor de memória GPU em tempo real |
-| `inference_example.py` | Script de inferência com modelo treinado |
-| `generate_prompts.py` | Gerador de prompts em lote |
-| `dataset_loader.py` | Módulo modular de datasets |
-
-## 📖 Exemplos de Uso
-
-### Treinamento Básico
-```bash
-python finetune_deepseek_optimized.py
-```
-
-### Treinamento com Múltiplos Datasets
-```bash
-python finetune_deepseek_optimized.py \
-  --dataset_names hpcgroup/hpc-instruct bigcode/the-stack \
-  --dataset_configs default python
-```
-
-### Monitorar GPU Durante Treinamento
-```bash
-python monitor_gpu.py
-```
-
-### Gerar Prompts
-```bash
-python generate_prompts.py \
-  --model_dir ./trained_model \
-  --prompts_dir ./prompts \
-  --output_dir ./outputs \
-  --k 5
-```
-
-## 🎯 Configurações Recomendadas
-
-### Conservative (~18GB VRAM)
-```bash
---max_length 512 --lora_r 32 --gradient_accumulation_steps 8
-```
-
-### Balanced (~20GB VRAM) - Recomendado
-```bash
---max_length 1024 --lora_r 64 --gradient_accumulation_steps 16
-```
-
-### Quality (~22GB VRAM)
-```bash
---max_length 2048 --lora_r 128 --gradient_accumulation_steps 32 --use_flash_attention
-```
-
 ## 🔗 Links Úteis
 
-- [Documentação Completa](README_DEEPSEEK_FINETUNE.md)
 - [Guia Rápido](QUICKSTART.md)
 - [Guia Dataset Loader](DATASET_LOADER_GUIDE.md)
 - [DeepSeek-Coder GitHub](https://github.com/deepseek-ai/DeepSeek-Coder)
