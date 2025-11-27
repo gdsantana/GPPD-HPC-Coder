@@ -4,9 +4,9 @@ import numpy as np
 import os
 
 # --- Configuration ---
-CHART_TITLE = "speedup@1-without-stencil por problem_type"
-INPUT_FILE = "metrics/speedup@1-without-stencil.csv"
-OUTPUT_FILE = "graphs/speedup@1-without-stencil.png"
+CHART_TITLE = "pass@1 GPPD-HPC-CUDA-Coder"
+INPUT_FILE = "metrics/pass@1.csv"
+OUTPUT_FILE = "graphs/pass@1-gppd-hpc-cuda-coder.png"
 # ---------------------
 
 def generate_chart():
@@ -41,19 +41,21 @@ def generate_chart():
         pivot_df = df.pivot(index=problem_col, columns=model_col, values=value_col)
         
         # Plotting
-        ax = pivot_df.plot(kind='bar', figsize=(15, 8), width=0.8)
+        ax = pivot_df.plot(kind='bar', figsize=(20, 8), width=0.9)
         
         # Styling
-        plt.title(CHART_TITLE, fontsize=16, pad=20)
-        plt.ylabel(value_col, fontsize=12)
-        plt.xlabel(problem_col, fontsize=12)
-        plt.xticks(rotation=0)  # Keep x-axis labels horizontal if possible
+        plt.title(CHART_TITLE, fontsize=32, pad=20)
+        plt.ylabel(value_col, fontsize=18)
+        plt.xlabel(problem_col, fontsize=18)
+        plt.xticks(rotation=0, fontsize=18)
+        plt.yticks(rotation=0, fontsize=18)
         plt.grid(axis='y', linestyle='--', alpha=0.7)
-        plt.legend(title='Model', bbox_to_anchor=(1.05, 1), loc='upper left')
+        # plt.legend(title='Model', loc='lower left', fontsize=18, framealpha=1)
+        plt.legend(title='Model', loc='best', framealpha=1, fontsize=18)
         
         # Add value labels on top of bars
         for container in ax.containers:
-            ax.bar_label(container, fmt='%.2f', fontsize=8, padding=3)
+            ax.bar_label(container, fmt='%.2f', fontsize=12, padding=1)
             
         plt.tight_layout()
         
