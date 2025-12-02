@@ -5,8 +5,8 @@ import os
 
 # --- Configuration ---
 # CHART_TITLE = "pass@1"
-INPUT_FILE = "metrics/pass@1-all-models.csv"
-OUTPUT_FILE = "graphs/pass@1-all-models.png"
+INPUT_FILE = "metrics/build@1-all-models.csv"
+OUTPUT_FILE = "graphs/build@1-all-models.png"
 # ---------------------
 
 def generate_chart():
@@ -45,17 +45,19 @@ def generate_chart():
         
         # Styling
         # plt.title(CHART_TITLE, fontsize=32, pad=20)
-        plt.ylabel(value_col, fontsize=24)
-        plt.xlabel(problem_col, fontsize=24)
-        plt.xticks(rotation=45, fontsize=20)
-        plt.yticks(rotation=45, fontsize=20)
+        plt.ylabel(value_col, fontsize=32)
+        plt.xlabel(problem_col, fontsize=32)
+        plt.xticks(rotation=45, fontsize=28)
+        plt.yticks(rotation=0, fontsize=28)
+        plt.ylim(0, 1.15)
+        # plt.ylim(0, 0.9)
         plt.grid(axis='y', linestyle='--', alpha=0.7)
-        # plt.legend(title='Model', loc='lower right', fontsize=20, framealpha=1)
-        plt.legend(title='Model', loc='best', framealpha=1, fontsize=18)
+        plt.legend(loc='lower right', fontsize=20, framealpha=1)
+        # plt.legend( loc='best', framealpha=1, fontsize=24)
         
         # Add value labels on top of bars
         for container in ax.containers:
-            ax.bar_label(container, fmt='%.2f', fontsize=14, padding=1)
+            ax.bar_label(container, fmt='%.2f', fontsize=20, padding=1, rotation=45)
             
         plt.tight_layout()
         
