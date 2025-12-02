@@ -4,9 +4,9 @@ import numpy as np
 import os
 
 # --- Configuration ---
-CHART_TITLE = "pass@k - Média por Modelo"
-INPUT_FILE = "metrics/pass@k.csv"
-OUTPUT_FILE = "graphs/pass@k-gppd-average.png"
+# CHART_TITLE = "build@k - Média por Modelo"
+INPUT_FILE = "metrics/pass@k-all-models.csv"
+OUTPUT_FILE = "graphs/pass@k-all-models.png"
 # ---------------------
 
 def generate_chart():
@@ -55,15 +55,16 @@ def generate_chart():
             plt.plot(k_values, values, marker='o', linewidth=2, markersize=8, label=model)
         
         # Styling
-        plt.title(CHART_TITLE, fontsize=24, pad=20)
-        plt.xlabel('k', fontsize=18)
-        plt.ylabel(f'{metric_name}@k (média)', fontsize=18)
-        plt.xticks(k_values, fontsize=14)
-        plt.yticks(fontsize=14)
+        # plt.title(CHART_TITLE, fontsize=24, pad=20)
+        plt.xlabel('k', fontsize=20)
+        plt.ylabel(f'{metric_name}@k (média)', fontsize=20)
+        plt.xticks(k_values, fontsize=16)
+        plt.yticks(fontsize=16)
         plt.grid(True, linestyle='--', alpha=0.7)
-        plt.legend(loc='best', fontsize=12, framealpha=0.9)
+        plt.legend(loc='best', fontsize=16, framealpha=0.9)
         
         # Set y-axis limits for better visualization
+        # plt.ylim([0.2, 1.05])
         plt.ylim([0, 0.4])
         
         plt.tight_layout()
