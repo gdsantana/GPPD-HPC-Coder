@@ -2,7 +2,7 @@
 
 [Voltar ao README](../readme.md)
 
-Esta síntese reúne o capítulo 4 da [monografia](../TG2_rascunho.pdf) e a implementação disponível. Informações históricas do texto são identificadas separadamente de configurações verificáveis no código.
+Esta síntese reúne o capítulo 4 da [monografia](../TCC-GPPD-HPC-Coder.pdf) e a implementação disponível. Informações históricas do texto são identificadas separadamente de configurações verificáveis no código.
 
 ## Objetivo e desenho experimental
 

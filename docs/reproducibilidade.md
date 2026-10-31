@@ -2,7 +2,7 @@
 
 [Voltar ao README](../readme.md) · [Metodologia](metodologia.md)
 
-Este guia distingue comandos do código disponível e o protocolo histórico descrito no capítulo 4 da [monografia](../TG2_rascunho.pdf). Não é uma garantia de repetição exata dos resultados: faltam versões e artefatos das execuções originais.
+Este guia distingue comandos do código disponível e o protocolo histórico descrito no capítulo 4 da [monografia](../TCC-GPPD-HPC-Coder.pdf). Não é uma garantia de repetição exata dos resultados: faltam versões e artefatos das execuções originais.
 
 ## Preparar o ambiente
 

@@ -12,7 +12,7 @@ O trabalho investiga se um modelo de 1,3 bilhão de parâmetros, refinado para C
 
 | Material | Conteúdo |
 | --- | --- |
-| [Monografia](TG2_rascunho.pdf) | Fundamentação, metodologia e discussão. O arquivo disponível mantém o nome original de rascunho. |
+| [Monografia](TCC-GPPD-HPC-Coder.pdf) | Texto da monografia, com fundamentação, metodologia e discussão. |
 | [Metodologia](docs/metodologia.md) | Ambiente experimental, datasets, modelos e protocolo de avaliação. |
 | [Resultados](docs/resultados.md) | Tabelas, gráficos, interpretação e limitações dos dados disponíveis. |
 | [Reprodução dos experimentos](docs/reproducibilidade.md) | Treinamento, inferência, fluxo do ParEval e artefatos necessários. |
@@ -63,7 +63,7 @@ Veja a [análise completa](docs/resultados.md) para resultados por categoria e o
 ├── graphs/                      # Gráficos de build e pass usados na análise
 ├── Graficos*/                   # Coleções adicionais de figuras
 ├── requirements.txt             # Dependências Python, sem versões fixadas
-└── TG2_rascunho.pdf              # Monografia disponível
+└── TCC-GPPD-HPC-Coder.pdf              # Monografia disponível
 ```
 
 ## Executar localmente

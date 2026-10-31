@@ -2,7 +2,7 @@
 
 [Voltar ao README](../readme.md) · [Metodologia](metodologia.md)
 
-Os números abaixo foram recalculados a partir dos CSVs existentes, sem novo treinamento ou execução do benchmark. As figuras e a discussão correspondem ao capítulo 5 da [monografia](../TG2_rascunho.pdf).
+Os números abaixo foram recalculados a partir dos CSVs existentes, sem novo treinamento ou execução do benchmark. As figuras e a discussão correspondem ao capítulo 5 da [monografia](../TCC-GPPD-HPC-Coder.pdf).
 
 ## Fonte e critério de leitura
 

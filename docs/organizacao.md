@@ -8,7 +8,7 @@ O README apresenta o trabalho e suas conclusões. A pasta `docs/` aprofunda [met
 
 | Local | Função |
 | --- | --- |
-| `TG2_rascunho.pdf` | Monografia disponível; confirmar a versão definitiva antes de renomear como final. |
+| `TCC-GPPD-HPC-Coder.pdf` | Texto da monografia associado ao projeto. |
 | `finetune_with_args.py`, `dataset_loader.py` | Implementação de treinamento e preparação dos dados. |
 | `utils/` | Diagnósticos, monitoramento, inferência e geração local de respostas. |
 | `prompts/` | 60 prompts CUDA em 12 categorias; não contém o JSON de entrada do ParEval. |
