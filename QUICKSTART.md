@@ -1,134 +1,76 @@
-# 🚀 Quick Start - DeepSeek-Coder Fine-tuning
+# Início rápido
 
-## Instalação de Dependências
+[Visão geral do TCC](readme.md) · [Metodologia](docs/metodologia.md) · [Guia de reprodução](docs/reproducibilidade.md)
+
+## Preparar o ambiente
+
+Execute na raiz do projeto, em uma máquina com GPU NVIDIA e CUDA compatíveis:
 
 ```bash
-# Instalar dependências
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
+python3 utils/check_compatibility.py
 ```
 
-## Comando Principal de Treinamento
+As dependências não estão fixadas em versões. Consulte os [limites de reprodução](docs/reproducibilidade.md#limites-e-registros-necessários) antes de um treinamento completo.
 
-Use o script `finetune_with_args.py` com o seguinte comando:
+## Treinar com todos os datasets
+
+O experimento descrito no TCC usa a variante **base**, não a variante `instruct`:
 
 ```bash
 python3 finetune_with_args.py \
-  --model_name deepseek-ai/deepseek-coder-1.3b-instruct \
-  --output_dir ./models/gppd-hpc-cuda-coder-instruct \
-  --save_dir ./checkpoints/gppd-hpc-cuda-coder-instruct \
+  --model_name deepseek-ai/deepseek-coder-1.3b-base \
+  --output_dir ./checkpoints/gppd-full \
+  --save_dir ./finetuned-models/gppd-full \
+  --log_file ./logs/gppd-full.log \
   --use_evol_instruct \
-  --use_magicoder \
-  --log_file ./logs/gppd-hpc-cuda-coder-instruct.log
+  --use_magicoder
 ```
 
-## Parâmetros do Script
+Para treinar apenas com HPC-INSTRUCT filtrado para CUDA, omita `--use_evol_instruct` e `--use_magicoder` e use caminhos de saída próprios para a variante HPC-only.
 
-### Parâmetros Obrigatórios
-- `--model_name`: Nome/caminho do modelo base (ex.: deepseek-ai/deepseek-coder-1.3b-instruct)
+## Parâmetros principais
 
-### Parâmetros Principais
-- `--output_dir`: Diretório para checkpoints durante o treino (padrão: ./results)
-- `--save_dir`: Diretório onde o modelo final será salvo (padrão: ./trained_model)
-- `--log_file`: Caminho para arquivo de log (opcional)
+| Argumento | Função | Padrão |
+| --- | --- | --- |
+| `--model_name` | Modelo base no Hugging Face ou caminho local | Obrigatório |
+| `--output_dir` | Checkpoints intermediários | `./results` |
+| `--save_dir` | Adaptadores e tokenizer finais; tentativa de exportação mesclada | `./trained_model` |
+| `--log_file` | Arquivo de log | Somente terminal |
+| `--epochs` | Épocas | 3 |
+| `--per_device_train_batch_size` | Batch por dispositivo | 4 |
+| `--gradient_accumulation_steps` | Acumulação de gradiente | 4 |
+| `--dataset_name` | Dataset principal | `hpcgroup/hpc-instruct` |
+| `--filter_language` | Filtro no dataset principal | `Cuda` |
 
-### Datasets Adicionais
-- `--use_evol_instruct`: Adiciona dataset Evol-Instruct-Code-80k-v1
-- `--use_magicoder`: Adiciona dataset Magicoder-OSS-Instruct-75K
+O parser também aceita `--max_length`, mas o código atual não o repassa ao treinador. Não conte com esse argumento para controlar memória sem antes ajustar a implementação. A configuração de *instruction masking* citada na monografia também não está explícita no código disponível.
 
-### Parâmetros de Configuração (opcionais)
-- `--max_length`: Comprimento máximo de tokens (padrão: 512)
-- `--epochs`: Número de épocas (padrão: 3)
-- `--per_device_train_batch_size`: Batch size por dispositivo (padrão: 4)
-- `--gradient_accumulation_steps`: Passos de acumulação de gradiente (padrão: 4)
-- `--dataset_name`: Nome do dataset principal (padrão: hpcgroup/hpc-instruct)
-- `--filter_language`: Filtrar por linguagem (padrão: Cuda)
+## Arquivos de saída
 
-## Exemplos de Uso
+Com o comando acima:
 
-### Treinamento Básico (apenas HPC-Instruct)
+```text
+finetuned-models/gppd-full/
+├── lora_adapters/       # Adaptadores salvos pelo treinador
+├── merged_model/        # Disponível se a mesclagem e exportação tiverem sucesso
+└── arquivos do tokenizer
+```
+
+Os checkpoints intermediários ficam em `checkpoints/gppd-full/`. O diretório `finetuned-models/` está ignorado pelo Git; logs e checkpoints nesses outros caminhos não estão.
+
+## Acompanhar a execução
+
 ```bash
-python3 finetune_with_args.py \
-  --model_name deepseek-ai/deepseek-coder-1.3b-instruct \
-  --output_dir ./models/basic-cuda-coder \
-  --save_dir ./checkpoints/basic-cuda-coder
+tail -f ./logs/gppd-full.log
+python3 utils/monitor_gpu.py
 ```
 
-### Treinamento com Configurações Customizadas
-```bash
-python3 finetune_with_args.py \
-  --model_name deepseek-ai/deepseek-coder-1.3b-instruct \
-  --output_dir ./models/custom-coder \
-  --save_dir ./checkpoints/custom-coder \
-  --epochs 5 \
-  --max_length 1024 \
-  --per_device_train_batch_size 2 \
-  --gradient_accumulation_steps 8 \
-  --log_file ./logs/custom-training.log
-```
+Em caso de falta de memória, reduza o batch por dispositivo e avalie a acumulação de gradiente para manter o batch efetivo desejado. Registre qualquer alteração nos parâmetros do experimento.
 
-### Treinamento Apenas com Evol-Instruct
-```bash
-python3 finetune_with_args.py \
-  --model_name deepseek-ai/deepseek-coder-1.3b-instruct \
-  --output_dir ./models/evol-coder \
-  --save_dir ./checkpoints/evol-coder \
-  --use_evol_instruct
-```
+## Consultar os resultados existentes
 
-## Estrutura de Saída
+Os experimentos concluídos estão documentados em [Resultados obtidos](docs/resultados.md), com tabelas calculadas dos CSVs de `metrics/`. Não é necessário treinar novamente para consultar esses resultados.
 
-O modelo treinado será salvo com a seguinte estrutura:
-
-```
-finetune_model-{n_params}/
-├── lora_adapters/          # Adaptadores LoRA (PEFT)
-│   ├── adapter_config.json
-│   ├── adapter_model.bin
-│   └── ...
-├── merged_model/           # Modelo completo mesclado
-│   ├── config.json
-│   ├── pytorch_model.bin
-│   ├── tokenizer.json
-│   └── ...
-├── tokenizer.json
-├── tokenizer_config.json
-└── special_tokens_map.json
-```
-
-## Monitoramento
-
-### Ver Logs em Tempo Real
-```bash
-tail -f ./logs/gppd-hpc-cuda-coder-instruct.log
-```
-
-### Monitorar GPU (se disponível)
-```bash
-python monitor_gpu.py
-```
-
-## Troubleshooting
-
-### Erro de Memória (OOM)
-1. Reduzir `--max_length 256`
-2. Reduzir `--per_device_train_batch_size 1`
-3. Aumentar `--gradient_accumulation_steps 8`
-
-### Treinamento Muito Lento
-1. Aumentar `--per_device_train_batch_size` (se tiver memória)
-2. Reduzir `--gradient_accumulation_steps`
-3. Usar modelo menor (1.3B ao invés de 6.7B)
-
-### Erro de Dependências
-```bash
-pip install --upgrade transformers peft trl datasets bitsandbytes
-```
-
-## Recursos do Script
-
-- ✅ Suporte a múltiplos datasets (HPC-Instruct, Evol-Instruct, Magicoder)
-- ✅ Logging simultâneo no terminal e arquivo
-- ✅ Quantização 8-bit para economia de memória
-- ✅ LoRA (Low-Rank Adaptation) para fine-tuning eficiente
-- ✅ Salvamento automático de adaptadores e modelo mesclado
-- ✅ Timestamps e debug detalhado
+Para gerar respostas com um modelo local ou executar o protocolo do ParEval, siga o [guia de reprodução](docs/reproducibilidade.md).
