@@ -1,3 +1,5 @@
+![Capa GPPD-HPC-Coder com um servidor e uma GPU ilustrados](docs/assets/gppd-hpc-coder-cover.png)
+
 # GPPD-HPC-Coder
 
 **Especialização de um Small Language Model para geração de código paralelo em CUDA.**
